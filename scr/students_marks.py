@@ -41,12 +41,10 @@ with beam.Pipeline(options=pipeline_options) as p:
         | 'Filter Valid Records' >> beam.Filter(lambda x: x is not None)
     )
 
-    pipelines = {}
-    for country in countries_list:
-        pipelines[country] = (
-            input_data
-            | f'Filter {country} records' >> beam.Filter(lambda x: filter_country(country, x))
-            | f'Calculate sum for {country}' >> beam.Map(calculate_total_marks)
-            | f'Format output for {country}' >> beam.Map(format_output)
-            | f'Write output to a {country} file' >> beam.io.WriteToText(OUTPUT_FILE, file_name_suffix=f'_{country.lower()}')
-        )
+    for country in countries_list: (
+        input_data
+        | f'Filter {country} records' >> beam.Filter(lambda x: filter_country(country, x))
+        | f'Calculate sum for {country}' >> beam.Map(calculate_total_marks)
+        | f'Format output for {country}' >> beam.Map(format_output)
+        | f'Write output to a {country} file' >> beam.io.WriteToText(OUTPUT_FILE, file_name_suffix=f'_{country.lower()}')
+    )
