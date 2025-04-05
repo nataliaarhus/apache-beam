@@ -16,8 +16,16 @@ def parse_record(record):
         return None
 
 
-def filter_country(country, record):
-    return record[1] == country
+def make_country_filter(country_value):
+    """
+    The pipeline construction phase and execution phase are separate in Apache Beam, i.e. loop completes before
+    the pipeline executes. The function factory approach creates a new function for each country with the country value
+    supplied at creation time, rather than looking up the variable at execution time.
+    """
+    def filter_fn(record):
+        print(f"Filtering for country: {country_value}")
+        return record[1] == country_value
+    return filter_fn
 
 
 def calculate_total_marks(record):
@@ -41,10 +49,12 @@ with beam.Pipeline(options=pipeline_options) as p:
         | 'Filter Valid Records' >> beam.Filter(lambda x: x is not None)
     )
 
-    for country in countries_list: (
-        input_data
-        | f'Filter {country} records' >> beam.Filter(lambda x: filter_country(country, x))
-        | f'Calculate sum for {country}' >> beam.Map(calculate_total_marks)
-        | f'Format output for {country}' >> beam.Map(format_output)
-        | f'Write output to a {country} file' >> beam.io.WriteToText(f'{OUTPUT_PATH}_{country.lower()}', file_name_suffix='.txt')
-    )
+    for country in countries_list:
+        print(f"Creating pipeline branch for {country}")
+        (
+            input_data
+            | f'Filter {country} records' >>  beam.Filter(make_country_filter(country))
+            | f'Calculate sum for {country}' >> beam.Map(calculate_total_marks)
+            | f'Format output for {country}' >> beam.Map(format_output)
+            | f'Write output to a {country} file' >> beam.io.WriteToText(f'{OUTPUT_PATH}_{country.lower()}', file_name_suffix='.txt')
+        )
