@@ -2,7 +2,7 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 
 INPUT_FILE = '../res/raw/students_marks.txt'
-OUTPUT_FILE = '../res/processed/students_marks.txt'
+OUTPUT_PATH = '../res/processed/students_marks'
 countries_list = ['US', 'IN']
 
 
@@ -46,5 +46,5 @@ with beam.Pipeline(options=pipeline_options) as p:
         | f'Filter {country} records' >> beam.Filter(lambda x: filter_country(country, x))
         | f'Calculate sum for {country}' >> beam.Map(calculate_total_marks)
         | f'Format output for {country}' >> beam.Map(format_output)
-        | f'Write output to a {country} file' >> beam.io.WriteToText(OUTPUT_FILE, file_name_suffix=f'_{country.lower()}')
+        | f'Write output to a {country} file' >> beam.io.WriteToText(f'{OUTPUT_PATH}_{country.lower()}', file_name_suffix='.txt')
     )

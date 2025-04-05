@@ -1,62 +1,76 @@
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
+import logging
 
 INPUT_FILE = '../res/raw/students_marks.txt'
-OUTPUT_FILE = '../res/processed/students_marks.txt'
-countries_list = ['US', 'IN']
+OUTPUT_PATH = '../res/processed/students_marks'
+COUNTRIES = ['US', 'IN']
 
-# Custom PTransform to encapsulate common logic
-class MyPTransform(beam.PTransform):
+
+class ProcessStudentRecords(beam.PTransform):
+    """Custom PTransform to encapsulate common logic to process student records for a specific country."""
+
     def __init__(self, country):
+        """Initialize with the country to filter for."""
         super().__init__()
         self.country = country
 
-    def expand(self, input_col):
+    def expand(self, pcoll):
+        """Process student records for the specified country. """
         return (
-            input_col
-            | f'Calculate sum for {self.country}' >> beam.Map(calculate_total_marks)
-            | f'Format output for {self.country}' >> beam.Map(format_output)
+                pcoll
+                | f'Filter {self.country} records' >> beam.Filter(lambda x: x[1] == self.country)
+                | f'Calculate sum for {self.country}' >> beam.Map(self._calculate_total_marks)
+                | f'Format output for {self.country}' >> beam.Map(self._format_output)
         )
+
+    @staticmethod
+    def _calculate_total_marks(record):
+        """Calculate total marks from a student record."""
+        name, _, mark1, mark2, mark3 = record                                 # tuple unpacking
+        total_marks = mark1 + mark2 + mark3
+        return name, total_marks
+
+    @staticmethod
+    def _format_output(record):
+        """Format the output string."""
+        name, total_marks = record
+        return f'{name} has received {total_marks} marks.'
 
 
 def parse_record(record):
+    """Parse a comma-separated record into a tuple."""
     try:
         cols = record.split(',')
         if len(cols) < 5:
-            raise ValueError("Invalid record format")
+            logging.warning(f"Invalid record format: {record}")
+            return None
         return cols[0], cols[1], int(cols[2]), int(cols[3]), int(cols[4])
     except Exception as e:
+        logging.error(f"Error parsing record '{record}': {str(e)}")
         return None
 
 
-def filter_country(country, record):
-    return record[1] == country
+def run():
+    """Run the pipeline."""
+    pipeline_options = PipelineOptions()
 
+    with beam.Pipeline(options=pipeline_options) as pipeline:
+        # Parse and filter input data
+        parsed_records = (
+                pipeline
+                | 'Read file' >> beam.io.ReadFromText(INPUT_FILE)
+                | 'Parse records' >> beam.Map(parse_record)
+                | 'Filter valid records' >> beam.Filter(lambda x: x is not None)
+        )
 
-def calculate_total_marks(record):
-    name, _, mark1, mark2, mark3 = record                   # tuple unpacking
-    total_marks = mark1 + mark2 + mark3
-    return name, total_marks
+        # Process each country
+        for country in COUNTRIES: (
+                parsed_records
+                | f'Process {country} records' >> ProcessStudentRecords(country)
+                | f'Write {country} results' >> beam.io.WriteToText(f'{OUTPUT_PATH}_{country.lower()}', file_name_suffix='.txt')
+            )
 
-
-def format_output(record):
-    name, total_marks = record
-    return f'{name} has received {total_marks} marks.'
-
-
-pipeline_options = PipelineOptions()
-with beam.Pipeline(options=pipeline_options) as p:
-
-    input_data = (
-        p
-        | 'Read file' >> beam.io.ReadFromText(INPUT_FILE)
-        | 'Split by delimiter' >> beam.Map(parse_record)
-        | 'Filter Valid Records' >> beam.Filter(lambda x: x is not None)
-    )
-
-    for country in countries_list: (
-        input_data
-        | f'Filter {country} records' >> beam.Filter(lambda x: filter_country(country, x))
-        | f'Apply PTransform for {country}' >> MyPTransform(country)
-        | f'Write output to a {country} file' >> beam.io.WriteToText(OUTPUT_FILE, file_name_suffix=f'_{country.lower()}')
-    )
+if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.INFO)
+    run()
