@@ -49,6 +49,15 @@ Apache Beam is an open-source, unified, portable model for defining batch and st
 
 ### Pipeline overview
 
+The pipeline implementation can be decomposed across four dimensions:
+
+- **What** results are being computed? - *transformations*
+- **Where** in event time they are being computed? - *windowing*
+- **When** in processing time they are materialized? - *watermarks and triggers*
+- **How** earlier results relate to later refinements? - *accumulation*
+
+Creating Beam pipelines:
+
 - **Pipeline object** - encapsulates all the data and steps in the processing task. This includes reading input data, transforming that data, and writing output data. A Beam driver program typically starts by constructing a Pipeline object (by creating an instance of the Beam SDK class Pipeline), and then using that object as the basis for creating the pipeline’s data sets as PCollections and its operations as Transforms. When creating the pipeline object, we also set the configuration options that tell the Pipeline where and how to run.
 
 ```python
@@ -87,7 +96,6 @@ with beam.Pipeline(options=beam_options) as p:
 
 Most common transformations are described [here](https://tour.beam.apache.org/tour/python/common-transforms/filter).
 
-**Side inputs** - additional data that your transform can access while processing each element.
 
 **ParDo** - a Beam transform for generic parallel processing. The ParDo processing paradigm is similar to the “Map” phase of a Map/Shuffle/Reduce-style algorithm: a ParDo transform considers each element in the input PCollection, performs some processing function (your user code) on that element, and emits zero, one, or multiple elements to an output PCollection.
 
@@ -124,6 +132,8 @@ input = ...
 
 word_lengths = input | beam.FlatMap(lambda word: [len(word)])
 ```
+
+**Side inputs** - additional data that your transform can access while processing each element.
 
 **Map** - if your ParDo performs a one-to-one mapping of input elements to output elements–that is, for each input element, it applies a function that produces exactly one output element, you can use the higher-level Map transform. 
 
