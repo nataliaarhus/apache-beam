@@ -28,19 +28,19 @@ Apache Beam is an open-source, unified, portable model for defining batch and st
 
 ## Beam Architecture
 
-Beam/Runner API (Core of Apache Beam)
+![beam.png](img%2Fbeam.png)
 
-- **Direct Runner** - executes pipelines on your machine and is designed to validate that pipelines adhere to the Apache Beam model as closely as possible. Instead of focusing on efficient pipeline execution, the Direct Runner performs additional checks to ensure that users do not rely on semantics that are not guaranteed by the model. Using the Direct Runner for testing and development helps ensure that pipelines are robust across different Beam runners ([source](https://tour.beam.apache.org/tour/python/introduction/beam-concepts/runner-concepts)). 
+- **Beam / Runner API (Core of Apache Beam)** - The interface responsible for defining and constructing the pipeline; used during pipeline build time to translate user code into an executable graph.
 
-- **GCP Dataflow Runner** - The Google Cloud Dataflow uses the Cloud Dataflow managed service. When you run your pipeline with the Cloud Dataflow service, the runner uploads your executable code and dependencies to a Google Cloud Storage bucket and creates a Cloud Dataflow job, which executes your pipeline on managed resources in Google Cloud Platform ([source](https://tour.beam.apache.org/tour/python/introduction/beam-concepts/runner-concepts)).
+- **Execution Engine** - The actual data processing backend (such as Spark, Flink, or Dataflow) that physically runs and distributes computation according to the Runner’s plan.
 
-- **Java/Python/Go SDK** - Software Development Kit used to write the Apache Beam code.
+- **Fn API** - The protocol that standardizes runtime communication between the Runner and the SDK Worker, making cross-language execution possible.
 
-- **Java/Python/Go worker** - translates language-specific.
-  
-- **Spark/Flink/Google Dataflow/...** - execution engine on which the code runs.
+- **Runner** - The component that manages, schedules, and orchestrates pipeline execution, adapting Beam steps for the chosen backend and coordinating all tasks.
+ 
+- **SDK worker** - The runtime environment for executing user code in the language of choice, processing data as instructed by the Runner via the Fn API.
 
-- **FN-API**
+- **SDK** - The programming interface and libraries (e.g., Python, Java, Go) that users employ to write Beam pipelines.
 
 
 ## Apache Beam flow
